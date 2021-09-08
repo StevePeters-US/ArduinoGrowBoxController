@@ -14,8 +14,11 @@ const int relayPin = 8;
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 bool lightOn = false;
-int lightOnHour = 16;
-int lightOnMin = 03;
+int lightOnHour = 6;
+int lightOnMin = 00;
+
+int lightOffHour = 20;
+int lightOffMin = 00;
 
 // Initialize DHT sensor for normal 16mhz Arduino
 DHT dht(DHTPIN, DHTTYPE);
@@ -42,6 +45,14 @@ void setup() {
   //rtc.setDate(9, 2, 2021);   // Set the date to January 1st, 2014
 
   delay(3000);
+
+ Time t = rtc.getTime();
+  // Debug light timer
+  lightOnHour = t.hour;
+  lightOnMin = t.min + 1;
+
+  lightOffHour = t.hour;;
+  lightOffMin = t.min + 2;
 }
 
 void loop() {
@@ -116,12 +127,21 @@ void loop() {
 void CheckLightTime()
 {
   Time t = rtc.getTime();
+
   if (lightOn == false && t.hour == lightOnHour && t.min == lightOnMin)
   {
     // Turn Light On
     lightOn = true;
 
-     Serial.print("LIGHT ON!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ");
+    Serial.print("LIGHT ON!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ");
+  }
+
+  if (lightOn == true && t.hour == lightOffHour && t.min == lightOffMin)
+  {
+    // Turn Light Off
+    lightOn = false;
+
+    Serial.print("LIGHT OFF!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ");
   }
 
 }
