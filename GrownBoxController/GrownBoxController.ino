@@ -9,7 +9,8 @@ DS3231  rtc(SDA, SCL);
 #define DHTPIN 12     // Temp / Humidity sensor pin
 #define DHTTYPE DHT11   // DHT 11 
 
-const int relayPin = 8;
+const int fanRelay = 8;
+const int lightRelay = 13;
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
@@ -33,8 +34,11 @@ void setup() {
   Serial.begin(9600);
   dht.begin();
 
-  pinMode(relayPin, OUTPUT);
-  digitalWrite(relayPin, HIGH);
+  pinMode(fanRelay, OUTPUT);
+  digitalWrite(fanRelay, HIGH);
+
+  pinMode(lightRelay, OUTPUT);
+  digitalWrite(lightRelay, HIGH);
 
   // Initialize the real time clock object
   rtc.begin();
@@ -46,13 +50,10 @@ void setup() {
 
   delay(3000);
 
- Time t = rtc.getTime();
-  // Debug light timer
-  lightOnHour = t.hour;
-  lightOnMin = t.min + 1;
+  //if (true) {
+  //  SetDebugLightTime();
+  //}
 
-  lightOffHour = t.hour;;
-  lightOffMin = t.min + 2;
 }
 
 void loop() {
@@ -100,13 +101,13 @@ void loop() {
   if (h > 60)
   {
     // Fan on
-    digitalWrite(relayPin, HIGH);
+    digitalWrite(fanRelay, HIGH);
   }
 
   else if (h < 55)
   {
     //Fan Off
-    digitalWrite(relayPin, LOW);
+    digitalWrite(fanRelay, LOW);
   }
 
   // Send Day-of-Week
@@ -124,6 +125,17 @@ void loop() {
   delay(1000);
 }
 
+void SetDebugLightTime()
+{
+  Time t = rtc.getTime();
+  // Debug light timer
+  lightOnHour = t.hour;
+  lightOnMin = t.min + 1;
+
+  lightOffHour = t.hour;;
+  lightOffMin = t.min + 2;
+}
+
 void CheckLightTime()
 {
   Time t = rtc.getTime();
@@ -132,16 +144,16 @@ void CheckLightTime()
   {
     // Turn Light On
     lightOn = true;
-
-    Serial.print("LIGHT ON!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ");
+    digitalWrite(lightRelay, HIGH);
+    Serial.print("LIGHT ON!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! \n");
   }
 
   if (lightOn == true && t.hour == lightOffHour && t.min == lightOffMin)
   {
     // Turn Light Off
     lightOn = false;
-
-    Serial.print("LIGHT OFF!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ");
+    digitalWrite(lightRelay, LOW);
+    Serial.print("LIGHT OFF!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! \n");
   }
 
 }
