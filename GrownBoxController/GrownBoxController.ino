@@ -1,5 +1,6 @@
+
 #include <LiquidCrystal_I2C.h>//Marco Shwartz
-#include "DHT.h" // DHT Sensor Library - Adafruit
+#include <DHT.h> // DHT Sensor Library - Adafruit
 #include <Wire.h>
 #include <DS3231.h> //http://www.rinkydinkelectronics.com/library.php?id=73
 
@@ -10,7 +11,9 @@ DS3231  rtc(SDA, SCL);
 #define DHTTYPE DHT11   // DHT 11 
 
 const int fanRelay = 8;
-const int lightRelay = 13;
+const int lightRelay = 11;
+#define LIGHTSWITCH 10
+bool lightSwitchPressed = false;
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
@@ -19,7 +22,7 @@ int lightOnHour = 6;
 int lightOnMin = 00;
 
 int lightOffHour = 20;
-int lightOffMin = 00;
+int lightOffMin = 18;
 
 // Initialize DHT sensor for normal 16mhz Arduino
 DHT dht(DHTPIN, DHTTYPE);
@@ -34,11 +37,15 @@ void setup() {
   Serial.begin(9600);
   dht.begin();
 
+  // Start the I2C interface
+  Wire.begin();
+
   pinMode(fanRelay, OUTPUT);
   digitalWrite(fanRelay, HIGH);
 
   pinMode(lightRelay, OUTPUT);
-  digitalWrite(lightRelay, HIGH);
+  //digitalWrite(lightRelay, HIGH);
+  pinMode(LIGHTSWITCH, INPUT_PULLUP);
 
   // Initialize the real time clock object
   rtc.begin();
@@ -50,9 +57,9 @@ void setup() {
 
   delay(3000);
 
-  //if (true) {
-  //  SetDebugLightTime();
-  //}
+  if (false) {
+    SetDebugLightTime();
+  }
 
 }
 
@@ -110,25 +117,29 @@ void loop() {
     digitalWrite(fanRelay, LOW);
   }
 
-  // Send Day-of-Week
-  Serial.print(rtc.getDOWStr());
-  Serial.print(" ");
-
-  // Send date
-  Serial.print(rtc.getDateStr());
-  Serial.print(" -- ");
-
-  // Send time
-  Serial.println(rtc.getTimeStr());
-
   CheckLightTime();
+
+  int sensorVal = 1 - digitalRead(LIGHTSWITCH);
+  if (!lightSwitchPressed && sensorVal == 1)
+  {
+    lightSwitchPressed = true;
+    ToggleLight();
+  }
+
+  else if (sensorVal == 0) {
+    lightSwitchPressed = false;
+  }
+  //print out the value of the pushbutton
+
+  Serial.println(sensorVal);
+
   delay(1000);
 }
 
 void SetDebugLightTime()
 {
   Time t = rtc.getTime();
-  // Debug light timer
+  //Debug light timer
   lightOnHour = t.hour;
   lightOnMin = t.min + 1;
 
@@ -136,24 +147,49 @@ void SetDebugLightTime()
   lightOffMin = t.min + 2;
 }
 
+void ToggleLight()
+{
+  if (lightOn == false)
+  {
+    TurnLightOn();
+  }
+
+  else if (lightOn == true)
+  {
+    TurnLightOff();
+  }
+}
+
+void TurnLightOn()
+{
+  lightOn = true;
+  digitalWrite(lightRelay, HIGH);
+  Serial.print("LIGHT ON!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! \n");
+}
+
+void TurnLightOff()
+{
+  lightOn = false;
+  digitalWrite(lightRelay, LOW);
+  Serial.print("LIGHT OFF!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! \n");
+}
+
 void CheckLightTime()
 {
+
   Time t = rtc.getTime();
+  Serial.print(t.hour);
+  Serial.print(" : ");
+  Serial.println(t.min);
 
   if (lightOn == false && t.hour == lightOnHour && t.min == lightOnMin)
   {
-    // Turn Light On
-    lightOn = true;
-    digitalWrite(lightRelay, HIGH);
-    Serial.print("LIGHT ON!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! \n");
+    TurnLightOn();
   }
 
-  if (lightOn == true && t.hour == lightOffHour && t.min == lightOffMin)
+  else if (lightOn == true && t.hour == lightOffHour && t.min == lightOffMin)
   {
-    // Turn Light Off
-    lightOn = false;
-    digitalWrite(lightRelay, LOW);
-    Serial.print("LIGHT OFF!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! \n");
+    TurnLightOff();
   }
 
 }
